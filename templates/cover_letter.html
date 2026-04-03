@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cover Letter — AI Job Hunter</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+      background: #000;
+      color: #f5f5f7;
+      min-height: 100vh;
+      padding: 48px 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { max-width: 680px; margin: 0 auto; }
+    a.back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #f5f5f7;
+      text-decoration: none;
+      font-size: 0.84rem;
+      font-weight: 600;
+      margin-bottom: 32px;
+      background: linear-gradient(145deg, #2c2c2e, #1a1a1c);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 9px 18px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+      transition: all 0.2s;
+    }
+    a.back:hover { background: linear-gradient(145deg, #3a3a3c, #2c2c2e); transform: translateY(-1px); }
+    a.back:active { transform: translateY(0px); }
+    .page-header { margin-bottom: 32px; }
+    .page-header h1 { font-size: 2rem; font-weight: 700; letter-spacing: -1.2px; color: #f5f5f7; margin-bottom: 4px; }
+    .page-header p { color: #48484a; font-size: 0.86rem; }
+    .card { background: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 16px; padding: 24px; margin-bottom: 12px; }
+    .card-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px; color: #48484a; font-weight: 600; margin-bottom: 16px; }
+    input, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #2c2c2e;
+      background: #2c2c2e;
+      color: #f5f5f7;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, textarea:focus { border-color: #ff6a00; }
+    input::placeholder, textarea::placeholder { color: #48484a; }
+    textarea { height: 120px; resize: vertical; }
+    .btn {
+      padding: 12px 22px;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.18s;
+      text-decoration: none;
+      display: inline-block;
+    }
+    .btn-primary { background: linear-gradient(180deg, #ff8533 0%, #ff4500 50%, #e03d00 100%); color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.25); }
+    .btn-primary:hover { background: linear-gradient(180deg, #ff9444 0%, #ff5511 50%, #f04500 100%); transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(1px); }
+    .btn-secondary { background: linear-gradient(180deg, #ff8533 0%, #ff4500 50%, #e03d00 100%); color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.25); }
+    .btn-secondary:hover { background: linear-gradient(180deg, #ff9444 0%, #ff5511 50%, #f04500 100%); transform: translateY(-1px); }
+    .btn-secondary:active { transform: translateY(1px); }
+    .letter-text { white-space: pre-wrap; line-height: 1.8; color: #c7c7cc; font-size: 0.9rem; margin-bottom: 20px; }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .progress-wrap { display: none; margin-top: 14px; }
+    .progress-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .progress-label { font-size: 0.8rem; color: #86868b; }
+    .progress-pct { font-size: 0.8rem; color: #ff6a00; font-weight: 600; }
+    .progress-track { background: #2c2c2e; border-radius: 6px; height: 6px; overflow: hidden; }
+    .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #ff8533, #ff4500); border-radius: 6px; transition: width 0.3s ease; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a href="/search-jobs" class="back">{{ t.back_to_jobs }}</a>
+  <div class="page-header">
+    <h1>{{ t.cover_letter }}</h1>
+    <p>{{ t.ai_generated }}</p>
+  </div>
+  <div class="card">
+    <div class="card-label">{{ t.job_details }}</div>
+    <form method="POST" action="/cover-letter" onsubmit="startProgress()">
+      <input type="text" name="job_title" placeholder="{{ t.job_title }}" value="{{ job_title }}">
+      <input type="text" name="company" placeholder="{{ t.company }}" value="{{ company }}">
+      <textarea name="job_description" placeholder="{{ t.job_desc_placeholder }}"></textarea>
+      <button type="submit" class="btn btn-primary" id="gen-btn">{{ t.generate_cover }}</button>
+      <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-header">
+          <span class="progress-label">{{ t.generating }}</span>
+          <span class="progress-pct" id="pct">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-bar" id="progress-bar"></div>
+        </div>
+      </div>
+    </form>
+  </div>
+  {% if letter %}
+  <div class="card">
+    <div class="card-label">Generated Cover Letter</div>
+    <div class="letter-text">{{ letter }}</div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="copyLetter()">{{ t.copy }}</button>
+      <a href="/search-jobs" class="btn btn-secondary">{{ t.back_to_jobs_btn }}</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-label">{{ t.answer_question }}</div>
+    <form method="POST" action="/answer" onsubmit="startAnswerProgress()">
+      <input type="hidden" name="job_title" value="{{ job_title }}">
+      <input type="hidden" name="company" value="{{ company }}">
+      <textarea name="question" placeholder="{{ t.question_placeholder }}"></textarea>
+      <button type="submit" class="btn btn-primary" id="ans-btn">{{ t.generate_answer }}</button>
+      <div class="progress-wrap" id="ans-progress-wrap">
+        <div class="progress-header">
+          <span class="progress-label">{{ t.generating_answer }}</span>
+          <span class="progress-pct" id="ans-pct">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-bar" id="ans-progress-bar"></div>
+        </div>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+</div>
+<script>
+function copyLetter() {
+  navigator.clipboard.writeText(document.querySelector('.letter-text').innerText).then(() => alert('{{ t.copy }}!'));
+}
+function runProgress(btnId, wrapId, barId, pctId) {
+  document.getElementById(btnId).style.display = 'none';
+  document.getElementById(wrapId).style.display = 'block';
+  let pct = 0;
+  const bar = document.getElementById(barId);
+  const label = document.getElementById(pctId);
+  setInterval(() => {
+    if (pct < 90) {
+      pct += Math.random() * 8;
+      if (pct > 90) pct = 90;
+      bar.style.width = pct + '%';
+      label.textContent = Math.round(pct) + '%';
+    }
+  }, 300);
+}
+function startProgress() { runProgress('gen-btn', 'progress-wrap', 'progress-bar', 'pct'); }
+function startAnswerProgress() { runProgress('ans-btn', 'ans-progress-wrap', 'ans-progress-bar', 'ans-pct'); }
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application Answer — AI Job Hunter</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+      background: #000;
+      color: #f5f5f7;
+      min-height: 100vh;
+      padding: 48px 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { max-width: 680px; margin: 0 auto; }
+    a.back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #f5f5f7;
+      text-decoration: none;
+      font-size: 0.84rem;
+      font-weight: 600;
+      margin-bottom: 32px;
+      background: linear-gradient(145deg, #2c2c2e, #1a1a1c);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 9px 18px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+      transition: all 0.2s;
+    }
+    a.back:hover { background: linear-gradient(145deg, #3a3a3c, #2c2c2e); transform: translateY(-1px); }
+    a.back:active { transform: translateY(0px); }
+    .page-header { margin-bottom: 32px; }
+    .page-header h1 { font-size: 2rem; font-weight: 700; letter-spacing: -1.2px; color: #f5f5f7; margin-bottom: 4px; }
+    .page-header p { color: #48484a; font-size: 0.86rem; }
+    .card { background: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 16px; padding: 24px; margin-bottom: 12px; }
+    .card-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.8px; color: #48484a; font-weight: 600; margin-bottom: 12px; }
+    .question-text { color: #86868b; font-style: italic; font-size: 0.9rem; line-height: 1.6; margin-bottom: 20px; padding: 12px 14px; background: #2c2c2e; border-radius: 10px; }
+    .answer-text { white-space: pre-wrap; line-height: 1.8; color: #c7c7cc; font-size: 0.9rem; margin-bottom: 20px; }
+    .btn { padding: 12px 22px; border: none; border-radius: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.18s; text-decoration: none; display: inline-block; margin-right: 8px; }
+    .btn-primary { background: linear-gradient(180deg, #ff8533 0%, #ff4500 50%, #e03d00 100%); color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.25); }
+    .btn-primary:hover { background: linear-gradient(180deg, #ff9444 0%, #ff5511 50%, #f04500 100%); transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(1px); }
+    .btn-secondary { background: linear-gradient(180deg, #ff8533 0%, #ff4500 50%, #e03d00 100%); color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.25); }
+    .btn-secondary:hover { background: linear-gradient(180deg, #ff9444 0%, #ff5511 50%, #f04500 100%); transform: translateY(-1px); }
+    .btn-secondary:active { transform: translateY(1px); }
+    .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a href="javascript:history.back()" class="back">{{ t.back }}</a>
+  <div class="page-header">
+    <h1>{{ t.application_answer }}</h1>
+    <p>{{ t.ai_generated }} — {{ company }}</p>
+  </div>
+  <div class="card">
+    <div class="card-label">Question</div>
+    <p class="question-text">"{{ question }}"</p>
+    <div class="card-label">Answer</div>
+    <div class="answer-text">{{ answer }}</div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="copyAnswer()">{{ t.copy }}</button>
+      <a href="javascript:history.back()" class="btn btn-secondary">{{ t.back }}</a>
+    </div>
+  </div>
+</div>
+<script>
+function copyAnswer() {
+  navigator.clipboard.writeText(document.querySelector('.answer-text').innerText).then(() => alert('{{ t.copy }}!'));
+}
+</script>
+</body>
+</html>

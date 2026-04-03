@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Results — AI Job Hunter</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+      background: #000;
+      color: #f5f5f7;
+      min-height: 100vh;
+      padding: 48px 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { max-width: 680px; margin: 0 auto; }
+    a.back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #f5f5f7;
+      text-decoration: none;
+      font-size: 0.84rem;
+      font-weight: 600;
+      margin-bottom: 32px;
+      background: linear-gradient(145deg, #2c2c2e, #1a1a1c);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 9px 18px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+      transition: all 0.2s;
+    }
+    a.back:hover { background: linear-gradient(145deg, #3a3a3c, #2c2c2e); transform: translateY(-1px); }
+    a.back:active { transform: translateY(0px); }
+    .page-header { margin-bottom: 24px; }
+    .page-header h1 { font-size: 2rem; font-weight: 700; letter-spacing: -1.2px; color: #f5f5f7; margin-bottom: 4px; }
+    .page-header p { color: #48484a; font-size: 0.86rem; }
+    .search-bar { display: flex; gap: 8px; margin-bottom: 8px; }
+    .search-bar input { flex: 1; padding: 11px 14px; border-radius: 10px; border: 1px solid #2c2c2e; background: #1c1c1e; color: #f5f5f7; font-size: 0.88rem; font-family: inherit; outline: none; transition: border-color 0.2s; }
+    .search-bar input:focus { border-color: #ff6a00; }
+    .search-bar input::placeholder { color: #48484a; }
+    .btn { padding: 11px 18px; border: none; border-radius: 10px; font-size: 0.86rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.18s; white-space: nowrap; text-decoration: none; display: inline-block; }
+    .btn-primary { background: linear-gradient(180deg, #ff8533 0%, #ff4500 50%, #e03d00 100%); color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.25); }
+    .btn-primary:hover { background: linear-gradient(180deg, #ff9444 0%, #ff5511 50%, #f04500 100%); transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(1px); }
+    .btn-secondary { background: linear-gradient(180deg, #ff8533 0%, #ff4500 50%, #e03d00 100%); color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,0.25); }
+    .btn-secondary:hover { background: linear-gradient(180deg, #ff9444 0%, #ff5511 50%, #f04500 100%); transform: translateY(-1px); }
+    .btn-secondary:active { transform: translateY(1px); }
+    .btn-sm { padding: 7px 14px; border-radius: 8px; font-size: 0.8rem; }
+    .search-progress { display: none; margin-bottom: 16px; }
+    .search-progress-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .search-progress-label { font-size: 0.8rem; color: #86868b; }
+    .search-progress-pct { font-size: 0.8rem; color: #ff6a00; font-weight: 600; }
+    .search-progress-track { background: #2c2c2e; border-radius: 6px; height: 4px; overflow: hidden; }
+    .search-progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #ff8533, #ff4500); border-radius: 6px; transition: width 0.3s ease; }
+    .count { display: inline-flex; align-items: center; background: rgba(255,106,0,0.1); border: 1px solid rgba(255,106,0,0.25); color: #ff6a00; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; margin-bottom: 16px; }
+    .job-card { background: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 14px; padding: 20px; margin-bottom: 10px; transition: border-color 0.2s, transform 0.15s; }
+    .job-card:hover { border-color: #3a3a3c; transform: translateY(-1px); }
+    .job-title { font-size: 0.95rem; font-weight: 600; color: #f5f5f7; letter-spacing: -0.3px; margin-bottom: 3px; line-height: 1.3; }
+    .job-company { font-size: 0.82rem; color: #ff6a00; font-weight: 500; margin-bottom: 8px; }
+    .job-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .job-location { font-size: 0.75rem; color: #86868b; background: #2c2c2e; padding: 2px 8px; border-radius: 5px; }
+    .job-posted { font-size: 0.73rem; color: #48484a; }
+    .job-description { font-size: 0.83rem; color: #86868b; line-height: 1.55; margin-bottom: 14px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .job-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .job-via { font-size: 0.73rem; color: #48484a; }
+    .job-actions { display: flex; gap: 6px; }
+    .no-jobs { text-align: center; padding: 80px 20px; }
+    .no-jobs h2 { font-size: 1.1rem; font-weight: 600; color: #86868b; margin-bottom: 6px; }
+    .no-jobs p { font-size: 0.84rem; color: #48484a; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <a href="/" class="back">{{ t.back }}</a>
+  <div class="page-header">
+    <h1>{{ t.job_results }}</h1>
+    <p>{{ t.real_vacancies }}</p>
+  </div>
+  <form action="/search-jobs" method="POST" class="search-bar" id="search-form" onsubmit="startSearch()">
+    <input type="text" name="location" placeholder="{{ t.filter_location }}" value="{{ location }}">
+    {% for kw in keywords %}
+    <input type="hidden" name="keywords" value="{{ kw }}">
+    {% endfor %}
+    <button type="submit" class="btn btn-primary" id="search-btn">{{ t.search }}</button>
+    <a href="/" class="btn btn-secondary">{{ t.new_cv }}</a>
+  </form>
+  <div class="search-progress" id="search-progress">
+    <div class="search-progress-header">
+      <span class="search-progress-label">{{ t.searching }}</span>
+      <span class="search-progress-pct" id="search-pct">0%</span>
+    </div>
+    <div class="search-progress-track">
+      <div class="search-progress-bar" id="search-bar"></div>
+    </div>
+  </div>
+  {% if jobs %}
+  <div class="count">{{ jobs|length }} {{ t.jobs_found }}</div>
+  {% for job in jobs %}
+  <div class="job-card">
+    <div class="job-title">{{ job.title }}</div>
+    <div class="job-company">{{ job.company }}</div>
+    <div class="job-meta">
+      <span class="job-location">📍 {{ job.location }}</span>
+      {% if job.posted %}<span class="job-posted">{{ job.posted }}</span>{% endif %}
+    </div>
+    <div class="job-description">{{ job.description }}</div>
+    <div class="job-footer">
+      <span class="job-via">via {{ job.via }}</span>
+      <div class="job-actions">
+        <a href="{{ job.link }}" target="_blank" class="btn btn-primary btn-sm">{{ t.apply }}</a>
+        <a href="/cover-letter?job_title={{ job.title }}&company={{ job.company }}" class="btn btn-secondary btn-sm">{{ t.cover_letter }}</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="no-jobs">
+    <h2>{{ t.no_jobs }}</h2>
+    <p>{{ t.no_jobs_sub }}</p>
+  </div>
+  {% endif %}
+</div>
+<script>
+function startSearch() {
+  document.getElementById('search-btn').style.display = 'none';
+  document.getElementById('search-progress').style.display = 'block';
+  let pct = 0;
+  const bar = document.getElementById('search-bar');
+  const label = document.getElementById('search-pct');
+  setInterval(() => {
+    if (pct < 90) {
+      pct += Math.random() * 6;
+      if (pct > 90) pct = 90;
+      bar.style.width = pct + '%';
+      label.textContent = Math.round(pct) + '%';
+    }
+  }, 300);
+}
+</script>
+</body>
+</html>
