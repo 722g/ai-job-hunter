@@ -6,3 +6,4 @@ python-docx
 requests
 werkzeug
 gunicorn
+flask-session
