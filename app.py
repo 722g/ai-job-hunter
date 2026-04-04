@@ -185,7 +185,7 @@ def jobs_cached():
 @app.route("/upload-cv", methods=["POST"])
 def upload_cv():
     if not check_limit("cv"):
-        return render_template("index.html", error="You've reached today's limit of 3 CV uploads. Come back tomorrow.", t=get_t())
+        return render_template("index.html", error="You've reached today's limit. Come back tomorrow.", t=get_t())
     if "cv_file" not in request.files:
         return render_template("index.html", error="No file selected.", t=get_t())
     file = request.files["cv_file"]
@@ -257,7 +257,7 @@ def cover_letter():
     company = request.args.get("company", "")
     if request.method == "POST":
         if not check_limit("cover"):
-            return render_template("cover_letter.html", letter=None, job_title=job_title, company=company, cv=cv_data, t=get_t(), jobs_url=jobs_url, error="You've reached today's limit of 3 cover letters. Come back tomorrow.")
+            return render_template("cover_letter.html", letter=None, job_title=job_title, company=company, cv=cv_data, t=get_t(), jobs_url=jobs_url, error="You've reached today's limit. Come back tomorrow.")
         job_title = request.form.get("job_title", "")
         company = request.form.get("company", "")
         job_description = request.form.get("job_description", "")
@@ -271,9 +271,8 @@ def cover_letter():
 @app.route("/answer", methods=["POST"])
 def answer():
     if not check_limit("answer"):
-        return render_template("index.html", error="You've reached today's limit of 3 answers. Come back tomorrow.", t=get_t())
+        return render_template("index.html", error="You've reached today's limit. Come back tomorrow.", t=get_t())
     cv_data = get_cv_data()
-    jobs_url = session.get("jobs_url", "/jobs-cached")
     question = request.form.get("question", "")
     job_title = request.form.get("job_title", "")
     company = request.form.get("company", "")
@@ -281,7 +280,23 @@ def answer():
     answer_text = generate_application_answer(cv_data, question, job_title, company, language)
     answer_text = answer_text.replace("**", "").replace("# ", "").replace("## ", "").replace("---", "").replace("*", "")
     increment_limit("answer")
-    return render_template("answer.html", answer=answer_text, question=question, job_title=job_title, company=company, t=get_t(), jobs_url=jobs_url)
+    session["last_answer"] = answer_text
+    session["last_question"] = question
+    session["last_job_title"] = job_title
+    session["last_company"] = company
+    return redirect("/answer-result")
+
+@app.route("/answer-result", methods=["GET"])
+def answer_result():
+    jobs_url = session.get("jobs_url", "/jobs-cached")
+    return render_template("answer.html",
+        answer=session.get("last_answer", ""),
+        question=session.get("last_question", ""),
+        job_title=session.get("last_job_title", ""),
+        company=session.get("last_company", ""),
+        t=get_t(),
+        jobs_url=jobs_url
+    )
 
 @app.route("/manual-search", methods=["GET"])
 def manual_search():
