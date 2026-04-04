@@ -9,7 +9,9 @@ from modules.job_search import search_jobs, filter_jobs_by_location
 from modules.writer import generate_cover_letter, generate_application_answer
 
 app = Flask(__name__)
-app.secret_key = "ai-job-hunter-secret-key-2024"
+app.secret_key = "primo-ai-job-hunter-secret-2024-xK9mP2qL"
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = True
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -237,9 +239,7 @@ def search_jobs_route():
 @app.route("/cover-letter", methods=["GET", "POST"])
 def cover_letter():
     cv_data = session.get("cv_data", {})
-    jobs_url = session.get("jobs_url", "/")
-    if not cv_data:
-        return redirect("/")
+    jobs_url = session.get("jobs_url", "/jobs-cached")
     job_title = request.args.get("job_title", "")
     company = request.args.get("company", "")
     if request.method == "POST":
@@ -259,7 +259,7 @@ def answer():
     if not check_limit("answer"):
         return render_template("index.html", error="You've reached today's limit of 3 answers. Come back tomorrow.", t=get_t())
     cv_data = session.get("cv_data", {})
-    jobs_url = session.get("jobs_url", "/")
+    jobs_url = session.get("jobs_url", "/jobs-cached")
     question = request.form.get("question", "")
     job_title = request.form.get("job_title", "")
     company = request.form.get("company", "")
