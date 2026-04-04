@@ -1,5 +1,6 @@
 import os
 import anthropic
+from datetime import date
 from flask import Flask, render_template, request, session, redirect
 from werkzeug.utils import secure_filename
 from config import UPLOAD_FOLDER, ALLOWED_EXTENSIONS, ANTHROPIC_API_KEY, MODEL
@@ -10,6 +11,21 @@ from modules.writer import generate_cover_letter, generate_application_answer
 app = Flask(__name__)
 app.secret_key = "ai-job-hunter-secret-key-2024"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+DAILY_LIMIT = 3
+
+def check_limit(action):
+    today = str(date.today())
+    if session.get("limit_date") != today:
+        session["limit_date"] = today
+        session["cv_count"] = 0
+        session["cover_count"] = 0
+        session["answer_count"] = 0
+    return session.get(f"{action}_count", 0) < DAILY_LIMIT
+
+def increment_limit(action):
+    session[f"{action}_count"] = session.get(f"{action}_count", 0) + 1
 
 TRANSLATIONS = {
     "English": {
@@ -146,8 +162,18 @@ def set_language():
     session["language"] = request.form.get("language", "English")
     return redirect("/")
 
+@app.route("/jobs-cached")
+def jobs_cached():
+    cv_data = session.get("cv_data", {})
+    keywords = session.get("keywords", [])
+    jobs = session.get("cached_jobs", [])
+    location = session.get("cached_location", "")
+    return render_template("jobs.html", jobs=jobs, keywords=keywords, location=location, cv=cv_data, t=get_t(), jobs_url="/jobs-cached")
+
 @app.route("/upload-cv", methods=["POST"])
 def upload_cv():
+    if not check_limit("cv"):
+        return render_template("index.html", error="You've reached today's limit of 3 CV uploads. Come back tomorrow.", t=get_t())
     if "cv_file" not in request.files:
         return render_template("index.html", error="No file selected.", t=get_t())
     file = request.files["cv_file"]
@@ -162,8 +188,6 @@ def upload_cv():
         cv_text = extract_text_from_file(filepath)
         if not cv_text.strip():
             return render_template("index.html", error="Could not extract text from file.", t=get_t())
-
-        # Validate it's actually a CV
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         cv_check = client.messages.create(
             model=MODEL,
@@ -172,17 +196,19 @@ def upload_cv():
         )
         if "NO" in cv_check.content[0].text.strip().upper():
             return render_template("index.html", error="The uploaded file doesn't appear to be a CV or resume. Please upload your actual CV in PDF or DOCX format.", t=get_t())
-
         cv_data = parse_cv_with_claude(cv_text)
+        increment_limit("cv")
         session["cv_data"] = cv_data
         session["cv_text"] = cv_text
         keywords = cv_data.get("keywords", [])
         session["keywords"] = keywords
-        candidate_location = cv_data.get("location", "")
-        session["candidate_location"] = candidate_location
+        session["candidate_location"] = cv_data.get("location", "")
         session["language"] = session.get("language", "English")
         jobs = search_jobs(keywords, "")
-        return render_template("jobs.html", jobs=jobs, keywords=keywords, location="", cv=cv_data, t=get_t())
+        session["cached_jobs"] = jobs
+        session["cached_location"] = ""
+        session["jobs_url"] = "/jobs-cached"
+        return render_template("jobs.html", jobs=jobs, keywords=keywords, location="", cv=cv_data, t=get_t(), jobs_url="/jobs-cached")
     except Exception as e:
         return render_template("index.html", error=f"Error processing CV: {str(e)}", t=get_t())
     finally:
@@ -194,58 +220,72 @@ def search_jobs_route():
     cv_data = session.get("cv_data", {})
     keywords = session.get("keywords", [])
     if not keywords:
-        return redirect("/")
+        return render_template("jobs.html", jobs=[], keywords=[], location="", cv={}, t=get_t(), jobs_url="/")
     if request.method == "POST":
         location = request.form.get("location", "")
     else:
         location = request.args.get("location", "")
-    jobs = search_jobs(keywords, location)
-    return render_template("jobs.html", jobs=jobs, keywords=keywords, location=location, cv=cv_data, t=get_t())
+    if not location and session.get("cached_jobs"):
+        jobs = session["cached_jobs"]
+    else:
+        jobs = search_jobs(keywords, location)
+        session["cached_jobs"] = jobs
+        session["cached_location"] = location
+    session["jobs_url"] = "/jobs-cached"
+    return render_template("jobs.html", jobs=jobs, keywords=keywords, location=location, cv=cv_data, t=get_t(), jobs_url="/jobs-cached")
 
 @app.route("/cover-letter", methods=["GET", "POST"])
 def cover_letter():
     cv_data = session.get("cv_data", {})
+    jobs_url = session.get("jobs_url", "/")
+    if not cv_data:
+        return redirect("/")
     job_title = request.args.get("job_title", "")
     company = request.args.get("company", "")
     if request.method == "POST":
+        if not check_limit("cover"):
+            return render_template("cover_letter.html", letter=None, job_title=job_title, company=company, cv=cv_data, t=get_t(), jobs_url=jobs_url, error="You've reached today's limit of 3 cover letters. Come back tomorrow.")
         job_title = request.form.get("job_title", "")
         company = request.form.get("company", "")
         job_description = request.form.get("job_description", "")
         language = session.get("language", "English")
         letter = generate_cover_letter(cv_data, job_title, company, job_description, language)
-        return render_template("cover_letter.html", letter=letter, job_title=job_title, company=company, cv=cv_data, t=get_t())
-    return render_template("cover_letter.html", letter=None, job_title=job_title, company=company, cv=cv_data, t=get_t())
+        increment_limit("cover")
+        return render_template("cover_letter.html", letter=letter, job_title=job_title, company=company, cv=cv_data, t=get_t(), jobs_url=jobs_url)
+    return render_template("cover_letter.html", letter=None, job_title=job_title, company=company, cv=cv_data, t=get_t(), jobs_url=jobs_url)
 
 @app.route("/answer", methods=["POST"])
 def answer():
+    if not check_limit("answer"):
+        return render_template("index.html", error="You've reached today's limit of 3 answers. Come back tomorrow.", t=get_t())
     cv_data = session.get("cv_data", {})
+    jobs_url = session.get("jobs_url", "/")
     question = request.form.get("question", "")
     job_title = request.form.get("job_title", "")
     company = request.form.get("company", "")
     language = session.get("language", "English")
     answer_text = generate_application_answer(cv_data, question, job_title, company, language)
-    return render_template("answer.html", answer=answer_text, question=question, job_title=job_title, company=company, t=get_t())
+    increment_limit("answer")
+    return render_template("answer.html", answer=answer_text, question=question, job_title=job_title, company=company, t=get_t(), jobs_url=jobs_url)
 
 @app.route("/manual-search", methods=["GET"])
 def manual_search():
     query = request.args.get("query", "").strip()
     location = request.args.get("location", "").strip()
-
     if not query:
         return render_template("index.html", error="Please enter a job title to search.", t=get_t())
-
     if len(query) < 2:
         return render_template("index.html", error="Please enter a more specific job title.", t=get_t())
-
     if not is_valid_job_title(query):
         return render_template("index.html", error=f"'{query}' doesn't look like a valid job title. Try something like 'QA Engineer' or 'Python Developer'.", t=get_t())
-
     if location and not is_valid_location(location):
         return render_template("index.html", error=f"'{location}' doesn't seem to be a valid location. Please check the spelling.", t=get_t())
-
     jobs = search_jobs([query], location)
-    return render_template("jobs.html", jobs=jobs, keywords=[query], location=location, cv={}, t=get_t())
+    session["cached_jobs"] = jobs
+    session["cached_location"] = location
+    session["jobs_url"] = "/jobs-cached"
+    return render_template("jobs.html", jobs=jobs, keywords=[query], location=location, cv={}, t=get_t(), jobs_url="/jobs-cached")
 
 if __name__ == "__main__":
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    app.run(debug=True)
+    app.run(host='0.0.0.0', debug=True)
