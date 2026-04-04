@@ -15,7 +15,7 @@ app.config['SESSION_COOKIE_SECURE'] = True
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-DAILY_LIMIT = 3
+DAILY_LIMIT = 10
 
 def check_limit(action):
     today = str(date.today())
