@@ -267,7 +267,7 @@ def search_jobs_route():
     session["jobs_url"] = "/jobs-cached"
     return render_template("jobs.html", jobs=jobs, keywords=keywords, location=location, cv=cv_data, t=get_t(), jobs_url="/jobs-cached")
 
-@app.route("/cover-letter", methods=["GET", "POST"])
+@app.route("/cover-letter", @app.route("/cover-letter", methods=["GET", "POST"])
 def cover_letter():
     cv_data = get_cv_data()
     jobs_url = session.get("jobs_url", "/jobs-cached")
@@ -283,9 +283,25 @@ def cover_letter():
         letter = generate_cover_letter(cv_data, job_title, company, job_description, language)
         letter = clean_text(letter)
         increment_limit("cover")
-        return render_template("cover_letter.html", letter=letter, job_title=job_title, company=company, cv=cv_data, t=get_t(), jobs_url=jobs_url)
+        session["last_letter"] = letter
+        session["last_letter_job_title"] = job_title
+        session["last_letter_company"] = company
+        session.modified = True
+        return redirect("/cover-letter-result")
     return render_template("cover_letter.html", letter=None, job_title=job_title, company=company, cv=cv_data, t=get_t(), jobs_url=jobs_url)
 
+@app.route("/cover-letter-result", methods=["GET"])
+def cover_letter_result():
+    cv_data = get_cv_data()
+    jobs_url = session.get("jobs_url", "/jobs-cached")
+    return render_template("cover_letter.html",
+        letter=session.get("last_letter", ""),
+        job_title=session.get("last_letter_job_title", ""),
+        company=session.get("last_letter_company", ""),
+        cv=cv_data,
+        t=get_t(),
+        jobs_url=jobs_url
+    )
 @app.route("/answer", methods=["POST"])
 def answer():
     if not check_limit("answer"):
