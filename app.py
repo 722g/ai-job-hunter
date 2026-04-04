@@ -280,11 +280,11 @@ def answer():
     answer_text = generate_application_answer(cv_data, question, job_title, company, language)
     answer_text = answer_text.replace("**", "").replace("# ", "").replace("## ", "").replace("---", "").replace("*", "")
     increment_limit("answer")
-    session["last_answer"] = answer_text
-    session["last_question"] = question
-    session["last_job_title"] = job_title
-    session["last_company"] = company
-    return redirect("/answer-result")
+    session["last_answer"] = answer_text[:1500]
+session["last_question"] = question[:200]
+session["last_job_title"] = job_title[:100]
+session["last_company"] = company[:100]
+return redirect("/answer-result")
 
 @app.route("/answer-result", methods=["GET"])
 def answer_result():
