@@ -237,10 +237,10 @@ def upload_cv():
         session["candidate_location"] = cv_data.get("location", "")
         session["jobs_url"] = "/jobs-cached"
         jobs = search_jobs(keywords, "")
-        session["cached_jobs"] = jobs[:20]
+        session["cached_jobs"] = jobs[:70]
         session["cached_location"] = ""
         session.modified = True
-        return render_template("jobs.html", jobs=jobs[:20], keywords=keywords, location="", cv=get_cv_data(), t=get_t(), jobs_url="/jobs-cached")
+        return render_template("jobs.html", jobs=jobs[:70], keywords=keywords, location="", cv=get_cv_data(), t=get_t(), jobs_url="/jobs-cached")
     except Exception as e:
         return render_template("index.html", error=f"Error processing CV: {str(e)}", t=get_t())
     finally:
@@ -261,7 +261,7 @@ def search_jobs_route():
         jobs = session["cached_jobs"]
     else:
         jobs = search_jobs(keywords, location)
-        session["cached_jobs"] = jobs[:20]
+        session["cached_jobs"] = jobs[:70]
         session["cached_location"] = location
         session.modified = True
     session["jobs_url"] = "/jobs-cached"
@@ -347,7 +347,7 @@ def manual_search():
     if location and not is_valid_location(location):
         return render_template("index.html", error=f"'{location}' doesn't seem to be a valid location.", t=get_t())
     jobs = search_jobs([query], location)
-    session["cached_jobs"] = jobs[:20]
+    session["cached_jobs"] = jobs[:70]
     session["cached_location"] = location
     session["jobs_url"] = "/jobs-cached"
     session.modified = True
