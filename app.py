@@ -271,13 +271,22 @@ def search_jobs_route():
 def cover_letter():
     cv_data = get_cv_data()
     jobs_url = session.get("jobs_url", "/jobs-cached")
-    job_title = request.args.get("job_title", "")
-    company = request.args.get("company", "")
+    if request.method == "GET":
+        job_title = request.args.get("job_title", "")
+        company = request.args.get("company", "")
+        if job_title:
+            session["cl_job_title"] = job_title
+            session["cl_company"] = company
+            session.modified = True
+        else:
+            job_title = session.get("cl_job_title", "")
+            company = session.get("cl_company", "")
+        return render_template("cover_letter.html", letter=None, job_title=job_title, company=company, cv=cv_data, t=get_t(), jobs_url=jobs_url)
     if request.method == "POST":
         if not check_limit("cover"):
-            return render_template("cover_letter.html", letter=None, job_title=job_title, company=company, cv=cv_data, t=get_t(), jobs_url=jobs_url, error="You've reached today's limit. Come back tomorrow.")
-        job_title = request.form.get("job_title", "")
-        company = request.form.get("company", "")
+            return render_template("cover_letter.html", letter=None, job_title=session.get("cl_job_title", ""), company=session.get("cl_company", ""), cv=cv_data, t=get_t(), jobs_url=jobs_url, error="You've reached today's limit. Come back tomorrow.")
+        job_title = request.form.get("job_title", "") or session.get("cl_job_title", "")
+        company = request.form.get("company", "") or session.get("cl_company", "")
         job_description = request.form.get("job_description", "")
         language = session.get("language", "English")
         letter = generate_cover_letter(cv_data, job_title, company, job_description, language)
@@ -288,7 +297,6 @@ def cover_letter():
         session["last_letter_company"] = company
         session.modified = True
         return redirect("/cover-letter-result")
-    return render_template("cover_letter.html", letter=None, job_title=job_title, company=company, cv=cv_data, t=get_t(), jobs_url=jobs_url)
 
 @app.route("/cover-letter-result", methods=["GET"])
 def cover_letter_result():
