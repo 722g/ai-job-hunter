@@ -19,7 +19,7 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 Session(app)
 
-DAILY_LIMIT = 10
+DAILY_LIMIT = 3
 
 def check_limit(action):
     today = str(date.today())
