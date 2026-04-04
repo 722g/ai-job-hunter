@@ -267,7 +267,7 @@ def search_jobs_route():
     session["jobs_url"] = "/jobs-cached"
     return render_template("jobs.html", jobs=jobs, keywords=keywords, location=location, cv=cv_data, t=get_t(), jobs_url="/jobs-cached")
 
-@app.route("/cover-letter", @app.route("/cover-letter", methods=["GET", "POST"])
+@app.route("/cover-letter", methods=["GET", "POST"])
 def cover_letter():
     cv_data = get_cv_data()
     jobs_url = session.get("jobs_url", "/jobs-cached")
@@ -302,6 +302,7 @@ def cover_letter_result():
         t=get_t(),
         jobs_url=jobs_url
     )
+
 @app.route("/answer", methods=["POST"])
 def answer():
     if not check_limit("answer"):
