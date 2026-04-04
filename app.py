@@ -29,6 +29,16 @@ def check_limit(action):
 def increment_limit(action):
     session[f"{action}_count"] = session.get(f"{action}_count", 0) + 1
 
+def get_cv_data():
+    return {
+        "full_name": session.get("cv_name", ""),
+        "email": session.get("cv_email", ""),
+        "skills": session.get("cv_skills", []),
+        "experience_years": session.get("cv_experience", ""),
+        "summary": session.get("cv_summary", ""),
+        "education": session.get("cv_education", ""),
+    }
+
 TRANSLATIONS = {
     "English": {
         "subtitle": "Upload your CV. Get matched jobs, cover letters, and answers.",
@@ -166,7 +176,7 @@ def set_language():
 
 @app.route("/jobs-cached")
 def jobs_cached():
-    cv_data = session.get("cv_data", {})
+    cv_data = get_cv_data()
     keywords = session.get("keywords", [])
     jobs = session.get("cached_jobs", [])
     location = session.get("cached_location", "")
@@ -197,20 +207,23 @@ def upload_cv():
             messages=[{"role": "user", "content": f"Does this text look like a CV or resume? Reply only YES or NO.\n\n{cv_text[:500]}"}]
         )
         if "NO" in cv_check.content[0].text.strip().upper():
-            return render_template("index.html", error="The uploaded file doesn't appear to be a CV or resume. Please upload your actual CV in PDF or DOCX format.", t=get_t())
+            return render_template("index.html", error="The uploaded file doesn't appear to be a CV or resume.", t=get_t())
         cv_data = parse_cv_with_claude(cv_text)
         increment_limit("cv")
-        session["cv_data"] = cv_data
-        session["cv_text"] = cv_text
+        session["cv_name"] = cv_data.get("full_name", "")
+        session["cv_email"] = cv_data.get("email", "")
+        session["cv_skills"] = cv_data.get("skills", [])[:10]
+        session["cv_experience"] = cv_data.get("experience_years", "")
+        session["cv_summary"] = cv_data.get("summary", "")[:300]
+        session["cv_education"] = cv_data.get("education", "")
         keywords = cv_data.get("keywords", [])
-        session["keywords"] = keywords
+        session["keywords"] = keywords[:5]
         session["candidate_location"] = cv_data.get("location", "")
-        session["language"] = session.get("language", "English")
-        jobs = search_jobs(keywords, "")
-        session["cached_jobs"] = jobs
-        session["cached_location"] = ""
         session["jobs_url"] = "/jobs-cached"
-        return render_template("jobs.html", jobs=jobs, keywords=keywords, location="", cv=cv_data, t=get_t(), jobs_url="/jobs-cached")
+        jobs = search_jobs(keywords, "")
+        session["cached_jobs"] = jobs[:20]
+        session["cached_location"] = ""
+        return render_template("jobs.html", jobs=jobs[:20], keywords=keywords, location="", cv=get_cv_data(), t=get_t(), jobs_url="/jobs-cached")
     except Exception as e:
         return render_template("index.html", error=f"Error processing CV: {str(e)}", t=get_t())
     finally:
@@ -219,7 +232,7 @@ def upload_cv():
 
 @app.route("/search-jobs", methods=["GET", "POST"])
 def search_jobs_route():
-    cv_data = session.get("cv_data", {})
+    cv_data = get_cv_data()
     keywords = session.get("keywords", [])
     if not keywords:
         return render_template("jobs.html", jobs=[], keywords=[], location="", cv={}, t=get_t(), jobs_url="/")
@@ -231,14 +244,14 @@ def search_jobs_route():
         jobs = session["cached_jobs"]
     else:
         jobs = search_jobs(keywords, location)
-        session["cached_jobs"] = jobs
+        session["cached_jobs"] = jobs[:20]
         session["cached_location"] = location
     session["jobs_url"] = "/jobs-cached"
     return render_template("jobs.html", jobs=jobs, keywords=keywords, location=location, cv=cv_data, t=get_t(), jobs_url="/jobs-cached")
 
 @app.route("/cover-letter", methods=["GET", "POST"])
 def cover_letter():
-    cv_data = session.get("cv_data", {})
+    cv_data = get_cv_data()
     jobs_url = session.get("jobs_url", "/jobs-cached")
     job_title = request.args.get("job_title", "")
     company = request.args.get("company", "")
@@ -250,6 +263,7 @@ def cover_letter():
         job_description = request.form.get("job_description", "")
         language = session.get("language", "English")
         letter = generate_cover_letter(cv_data, job_title, company, job_description, language)
+        letter = letter.replace("**", "").replace("# ", "").replace("## ", "").replace("---", "").replace("*", "")
         increment_limit("cover")
         return render_template("cover_letter.html", letter=letter, job_title=job_title, company=company, cv=cv_data, t=get_t(), jobs_url=jobs_url)
     return render_template("cover_letter.html", letter=None, job_title=job_title, company=company, cv=cv_data, t=get_t(), jobs_url=jobs_url)
@@ -258,13 +272,14 @@ def cover_letter():
 def answer():
     if not check_limit("answer"):
         return render_template("index.html", error="You've reached today's limit of 3 answers. Come back tomorrow.", t=get_t())
-    cv_data = session.get("cv_data", {})
+    cv_data = get_cv_data()
     jobs_url = session.get("jobs_url", "/jobs-cached")
     question = request.form.get("question", "")
     job_title = request.form.get("job_title", "")
     company = request.form.get("company", "")
     language = session.get("language", "English")
     answer_text = generate_application_answer(cv_data, question, job_title, company, language)
+    answer_text = answer_text.replace("**", "").replace("# ", "").replace("## ", "").replace("---", "").replace("*", "")
     increment_limit("answer")
     return render_template("answer.html", answer=answer_text, question=question, job_title=job_title, company=company, t=get_t(), jobs_url=jobs_url)
 
@@ -277,11 +292,11 @@ def manual_search():
     if len(query) < 2:
         return render_template("index.html", error="Please enter a more specific job title.", t=get_t())
     if not is_valid_job_title(query):
-        return render_template("index.html", error=f"'{query}' doesn't look like a valid job title. Try something like 'QA Engineer' or 'Python Developer'.", t=get_t())
+        return render_template("index.html", error=f"'{query}' doesn't look like a valid job title.", t=get_t())
     if location and not is_valid_location(location):
-        return render_template("index.html", error=f"'{location}' doesn't seem to be a valid location. Please check the spelling.", t=get_t())
+        return render_template("index.html", error=f"'{location}' doesn't seem to be a valid location.", t=get_t())
     jobs = search_jobs([query], location)
-    session["cached_jobs"] = jobs
+    session["cached_jobs"] = jobs[:20]
     session["cached_location"] = location
     session["jobs_url"] = "/jobs-cached"
     return render_template("jobs.html", jobs=jobs, keywords=[query], location=location, cv={}, t=get_t(), jobs_url="/jobs-cached")
