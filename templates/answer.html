@@ -63,14 +63,14 @@
     <div class="card-label">Answer</div>
     <div class="answer-text">{{ answer }}</div>
     <div class="btn-row">
-      <button class="btn btn-primary" onclick="copyAnswer()">{{ t.copy }}</button>
+      <button class="btn btn-primary" onclick="copyAnswer()">Copy</button>
       <a href="javascript:history.back()" class="btn btn-secondary">{{ t.back }}</a>
     </div>
   </div>
 </div>
 <script>
 function copyAnswer() {
-  navigator.clipboard.writeText(document.querySelector('.answer-text').innerText).then(() => alert('{{ t.copy }}!'));
+  navigator.clipboard.writeText(document.querySelector('.answer-text').innerText).then(() => alert('Copied!'));
 }
 </script>
 </body>
