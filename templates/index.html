@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Job Hunter</title>
+  <title>Primo</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -48,19 +48,29 @@
       font-weight: 700;
       letter-spacing: -2px;
       line-height: 1.05;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
       background: linear-gradient(180deg, #ffffff 30%, #888892 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
+    .app-subtitle {
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #ff6a00;
+      margin-bottom: 6px;
+      opacity: 0.85;
+    }
     .by722 {
-      font-size: 0.9rem;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      background: linear-gradient(180deg, #888892 0%, #636366 100%);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: linear-gradient(180deg, #636366 0%, #48484a 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
     .header p { color: #86868b; font-size: 1rem; letter-spacing: -0.3px; line-height: 1.5; }
     .card { background: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 20px; padding: 28px; width: 100%; max-width: 460px; }
@@ -154,7 +164,8 @@
 <body>
   <div class="header">
     <div class="badge">Powered by Claude AI</div>
-    <h1>AI Job Hunter</h1>
+    <h1>Primo</h1>
+    <div class="app-subtitle">AI Job Hunter</div>
     <div class="by722">by 722</div>
     <p>{{ t.subtitle }}</p>
   </div>
@@ -191,7 +202,7 @@
           <div style="margin-top:12px; width:100%; background:#2c2c2e; border-radius:6px; height:4px; overflow:hidden;">
             <div id="upload-bar" style="height:100%; width:0%; background:linear-gradient(90deg,#ff8533,#ff4500); border-radius:6px; transition:width 0.5s ease;"></div>
           </div>
-          <p id="upload-step" style="font-size:0.75rem; color:#48484a; margin-top:8px;">Step 1 of 2</p>
+          <p id="upload-step" style="font-size:0.75rem; color:#48484a; margin-top:8px;">Step 1 of 3</p>
         </div>
         <button type="submit" class="btn btn-primary" id="submit-btn">{{ t.extract_btn }}</button>
       </form>
@@ -218,7 +229,7 @@
         <div class="feature-label">{{ t.skill_extraction }}</div>
       </div>
       <div class="feature">
-        <div class="feature-number">26<span>+</span></div>
+        <div class="feature-number">100<span>+</span></div>
         <div class="feature-label">{{ t.live_results }}</div>
       </div>
       <div class="feature">
