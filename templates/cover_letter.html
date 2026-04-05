@@ -147,9 +147,9 @@ function runProgress(btnId, wrapId, barId, pctId) {
   const bar = document.getElementById(barId);
   const label = document.getElementById(pctId);
   setInterval(() => {
-    if (pct < 90) {
-      pct += Math.random() * 8;
-      if (pct > 90) pct = 90;
+    if (pct < 95) {
+      pct += pct < 70 ? Math.random() * 8 : Math.random() * 1.5;
+      if (pct > 95) pct = 95;
       bar.style.width = pct + '%';
       label.textContent = Math.round(pct) + '%';
     }
@@ -157,6 +157,16 @@ function runProgress(btnId, wrapId, barId, pctId) {
 }
 function startProgress() { runProgress('gen-btn', 'progress-wrap', 'progress-bar', 'pct'); }
 function startAnswerProgress() { runProgress('ans-btn', 'ans-progress-wrap', 'ans-progress-bar', 'ans-pct'); }
+window.addEventListener('pageshow', function() {
+  const ansBtn = document.getElementById('ans-btn');
+  const ansWrap = document.getElementById('ans-progress-wrap');
+  const genBtn = document.getElementById('gen-btn');
+  const genWrap = document.getElementById('progress-wrap');
+  if (ansBtn) ansBtn.style.display = 'inline-block';
+  if (ansWrap) ansWrap.style.display = 'none';
+  if (genBtn) genBtn.style.display = 'inline-block';
+  if (genWrap) genWrap.style.display = 'none';
+});
 </script>
 </body>
 </html>
