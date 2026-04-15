@@ -138,7 +138,11 @@
 </div>
 <script>
 function copyLetter() {
-  navigator.clipboard.writeText(document.querySelector('.letter-text').innerText).then(() => alert('Copied!'));
+  navigator.clipboard.writeText(document.querySelector('.letter-text').innerText).then(() => {
+    const btn = document.querySelector('[onclick="copyLetter()"]');
+    btn.innerText = '✓ Copied!';
+    setTimeout(() => { btn.innerText = '{{ t["copy"] }}'; }, 2000);
+  });
 }
 function runProgress(btnId, wrapId, barId, pctId) {
   document.getElementById(btnId).style.display = 'none';
