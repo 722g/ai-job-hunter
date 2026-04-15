@@ -7,9 +7,8 @@ from config import ANTHROPIC_API_KEY, MODEL
 def extract_text_from_file(filepath):
     if filepath.endswith(".pdf"):
         text = ""
-        with open(filepath, "rb") as f:
-            reader = PyPDF2.PdfReader(f)
-            for page in reader.pages:
+        with pdfplumber.open(filepath) as pdf:
+            for page in pdf.pages:
                 text += page.extract_text() or ""
         return text
     elif filepath.endswith(".docx"):
