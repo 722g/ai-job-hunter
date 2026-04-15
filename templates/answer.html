@@ -63,14 +63,18 @@
     <div class="card-label">Answer</div>
     <div class="answer-text">{{ answer }}</div>
     <div class="btn-row">
-     <button class="btn btn-secondary" onclick="copyAnswer()">{{ t['copy'] }}</button>
+      <button class="btn btn-secondary" id="copyBtn" onclick="copyAnswer()">{{ t['copy'] }}</button>
       <a href="javascript:history.back()" class="btn btn-secondary">{{ t.back }}</a>
     </div>
   </div>
 </div>
 <script>
 function copyAnswer() {
-  navigator.clipboard.writeText(document.querySelector('.answer-text').innerText).then(() => alert('Copied!'));
+  navigator.clipboard.writeText(document.querySelector('.answer-text').innerText).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.innerText = '✓ Copied!';
+    setTimeout(() => { btn.innerText = '{{ t["copy"] }}'; }, 2000);
+  });
 }
 </script>
 </body>
