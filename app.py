@@ -2,6 +2,7 @@ import os
 import anthropic
 from datetime import date
 from flask import Flask, render_template, request, session, redirect
+from flask_session import Session
 from werkzeug.utils import secure_filename
 from config import UPLOAD_FOLDER, ALLOWED_EXTENSIONS, ANTHROPIC_API_KEY, MODEL
 from modules.cv_parser import extract_text_from_file, parse_cv_with_claude
@@ -10,10 +11,15 @@ from modules.writer import generate_cover_letter, generate_application_answer
 
 app = Flask(__name__)
 app.secret_key = "primo-ai-job-hunter-secret-2024-xK9mP2qL"
+app.config["SESSION_TYPE"] = "filesystem"
+app.config["SESSION_FILE_DIR"] = "/tmp/flask_sessions"
+app.config["SESSION_PERMANENT"] = False
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs("/tmp/flask_sessions", exist_ok=True)
+Session(app)
 
 DAILY_LIMIT = 10
 
