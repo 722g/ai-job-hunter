@@ -8,7 +8,9 @@ COUNTRY_MAP = {
     "Polish": "pl"
 }
 
-def search_jobs(keywords, language="English", results=20):
+REMOTE_KEYWORDS = ["remote", "удалённо", "удаленно", "zdalnie", "remote work", "homeoffice"]
+
+def search_jobs(keywords, language="English", location="", results=20):
     country = COUNTRY_MAP.get(language, "gb")
     
     try:
@@ -20,6 +22,11 @@ def search_jobs(keywords, language="English", results=20):
             "what": keywords,
             "content-type": "application/json"
         }
+        
+        # Only add location if it's a real city, not "remote"
+        if location and location.lower().strip() not in REMOTE_KEYWORDS:
+            params["where"] = location
+
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
         data = response.json()
