@@ -1,25 +1,21 @@
 import os
 import anthropic
-import tempfile
 from datetime import date
 from flask import Flask, render_template, request, session, redirect
-from flask_session import Session
 from werkzeug.utils import secure_filename
 from config import UPLOAD_FOLDER, ALLOWED_EXTENSIONS, ANTHROPIC_API_KEY, MODEL
 from modules.cv_parser import extract_text_from_file, parse_cv_with_claude
-from modules.job_search import search_jobs, filter_jobs_by_location
+from modules.job_search import search_jobs
 from modules.writer import generate_cover_letter, generate_application_answer
 
 app = Flask(__name__)
 app.secret_key = "primo-ai-job-hunter-secret-2024-xK9mP2qL"
-app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_FILE_DIR'] = tempfile.gettempdir()
-app.config['SESSION_PERMANENT'] = False
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = True
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-Session(app)
 
-DAILY_LIMIT = 3
+DAILY_LIMIT = 10
 
 def check_limit(action):
     today = str(date.today())
@@ -32,7 +28,6 @@ def check_limit(action):
 
 def increment_limit(action):
     session[f"{action}_count"] = session.get(f"{action}_count", 0) + 1
-    session.modified = True
 
 def get_cv_data():
     return {
@@ -43,16 +38,6 @@ def get_cv_data():
         "summary": session.get("cv_summary", ""),
         "education": session.get("cv_education", ""),
     }
-
-def clean_text(text):
-    import re
-    text = re.sub(r'#{1,6}\s*', '', text)
-    text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
-    text = re.sub(r'\*(.+?)\*', r'\1', text)
-    text = re.sub(r'---+', '', text)
-    text = re.sub(r'___+', '', text)
-    text = re.sub(r'\n{3,}', '\n\n', text)
-    return text.strip()
 
 TRANSLATIONS = {
     "English": {
@@ -67,7 +52,7 @@ TRANSLATIONS = {
         "job_results": "Job Results", "real_vacancies": "Real vacancies matched to your profile",
         "filter_location": "Filter by location e.g. Remote, Tbilisi...", "search": "Search",
         "new_cv": "New CV", "jobs_found": "jobs found", "apply": "Apply →",
-        "cover_letter": "Cover Letter", "back_to_jobs": "← Back to Jobs",
+        "cover_letter": "Cover Letter", "back_to_jobs": "← Back to jobs",
         "ai_generated": "AI-generated based on your CV", "job_details": "Job Details",
         "job_title": "Job title", "company": "Company name",
         "job_desc_placeholder": "Paste job description here (optional but recommended)...",
@@ -187,7 +172,6 @@ def index():
 @app.route("/set-language", methods=["POST"])
 def set_language():
     session["language"] = request.form.get("language", "English")
-    session.modified = True
     return redirect("/")
 
 @app.route("/jobs-cached")
@@ -236,11 +220,10 @@ def upload_cv():
         session["keywords"] = keywords[:5]
         session["candidate_location"] = cv_data.get("location", "")
         session["jobs_url"] = "/jobs-cached"
-        jobs = search_jobs(keywords, "")
-        session["cached_jobs"] = jobs[:70]
+        jobs = search_jobs(keywords[0] if keywords else "QA Engineer", session.get("language", "English"))
+        session["cached_jobs"] = jobs[:20]
         session["cached_location"] = ""
-        session.modified = True
-        return render_template("jobs.html", jobs=jobs[:70], keywords=keywords, location="", cv=get_cv_data(), t=get_t(), jobs_url="/jobs-cached")
+        return render_template("jobs.html", jobs=jobs[:20], keywords=keywords, location="", cv=get_cv_data(), t=get_t(), jobs_url="/jobs-cached")
     except Exception as e:
         return render_template("index.html", error=f"Error processing CV: {str(e)}", t=get_t())
     finally:
@@ -260,10 +243,9 @@ def search_jobs_route():
     if not location and session.get("cached_jobs"):
         jobs = session["cached_jobs"]
     else:
-        jobs = search_jobs(keywords, location)
-        session["cached_jobs"] = jobs[:70]
+        jobs = search_jobs(" ".join(keywords), session.get("language", "English"))
+        session["cached_jobs"] = jobs[:20]
         session["cached_location"] = location
-        session.modified = True
     session["jobs_url"] = "/jobs-cached"
     return render_template("jobs.html", jobs=jobs, keywords=keywords, location=location, cv=cv_data, t=get_t(), jobs_url="/jobs-cached")
 
@@ -271,45 +253,20 @@ def search_jobs_route():
 def cover_letter():
     cv_data = get_cv_data()
     jobs_url = session.get("jobs_url", "/jobs-cached")
-    if request.method == "GET":
-        job_title = request.args.get("job_title", "")
-        company = request.args.get("company", "")
-        if job_title:
-            session["cl_job_title"] = job_title
-            session["cl_company"] = company
-            session.modified = True
-        else:
-            job_title = session.get("cl_job_title", "")
-            company = session.get("cl_company", "")
-        return render_template("cover_letter.html", letter=None, job_title=job_title, company=company, cv=cv_data, t=get_t(), jobs_url=jobs_url)
+    job_title = request.args.get("job_title", "")
+    company = request.args.get("company", "")
     if request.method == "POST":
         if not check_limit("cover"):
-            return render_template("cover_letter.html", letter=None, job_title=session.get("cl_job_title", ""), company=session.get("cl_company", ""), cv=cv_data, t=get_t(), jobs_url=jobs_url, error="You've reached today's limit. Come back tomorrow.")
-        job_title = request.form.get("job_title", "") or session.get("cl_job_title", "")
-        company = request.form.get("company", "") or session.get("cl_company", "")
+            return render_template("cover_letter.html", letter=None, job_title=job_title, company=company, cv=cv_data, t=get_t(), jobs_url=jobs_url, error="You've reached today's limit. Come back tomorrow.")
+        job_title = request.form.get("job_title", "")
+        company = request.form.get("company", "")
         job_description = request.form.get("job_description", "")
         language = session.get("language", "English")
         letter = generate_cover_letter(cv_data, job_title, company, job_description, language)
-        letter = clean_text(letter)
+        letter = letter.replace("**", "").replace("# ", "").replace("## ", "").replace("---", "").replace("*", "")
         increment_limit("cover")
-        session["last_letter"] = letter
-        session["last_letter_job_title"] = job_title
-        session["last_letter_company"] = company
-        session.modified = True
-        return redirect("/cover-letter-result")
-
-@app.route("/cover-letter-result", methods=["GET"])
-def cover_letter_result():
-    cv_data = get_cv_data()
-    jobs_url = session.get("jobs_url", "/jobs-cached")
-    return render_template("cover_letter.html",
-        letter=session.get("last_letter", ""),
-        job_title=session.get("last_letter_job_title", ""),
-        company=session.get("last_letter_company", ""),
-        cv=cv_data,
-        t=get_t(),
-        jobs_url=jobs_url
-    )
+        return render_template("cover_letter.html", letter=letter, job_title=job_title, company=company, cv=cv_data, t=get_t(), jobs_url=jobs_url)
+    return render_template("cover_letter.html", letter=None, job_title=job_title, company=company, cv=cv_data, t=get_t(), jobs_url=jobs_url)
 
 @app.route("/answer", methods=["POST"])
 def answer():
@@ -321,13 +278,12 @@ def answer():
     company = request.form.get("company", "")
     language = session.get("language", "English")
     answer_text = generate_application_answer(cv_data, question, job_title, company, language)
-    answer_text = clean_text(answer_text)
+    answer_text = answer_text.replace("**", "").replace("# ", "").replace("## ", "").replace("---", "").replace("*", "")
     increment_limit("answer")
-    session["last_answer"] = answer_text
-    session["last_question"] = question
-    session["last_job_title"] = job_title
-    session["last_company"] = company
-    session.modified = True
+    session["last_answer"] = answer_text[:1500]
+    session["last_question"] = question[:200]
+    session["last_job_title"] = job_title[:100]
+    session["last_company"] = company[:100]
     return redirect("/answer-result")
 
 @app.route("/answer-result", methods=["GET"])
@@ -354,11 +310,10 @@ def manual_search():
         return render_template("index.html", error=f"'{query}' doesn't look like a valid job title.", t=get_t())
     if location and not is_valid_location(location):
         return render_template("index.html", error=f"'{location}' doesn't seem to be a valid location.", t=get_t())
-    jobs = search_jobs([query], location)
-    session["cached_jobs"] = jobs[:70]
+    jobs = search_jobs(query, session.get("language", "English"))
+    session["cached_jobs"] = jobs[:20]
     session["cached_location"] = location
     session["jobs_url"] = "/jobs-cached"
-    session.modified = True
     return render_template("jobs.html", jobs=jobs, keywords=[query], location=location, cv={}, t=get_t(), jobs_url="/jobs-cached")
 
 if __name__ == "__main__":
