@@ -33,7 +33,7 @@ Supports 4 languages: English, German, Russian, Polish.
 ## Features
 
 - CV upload (PDF/DOCX) with skill and experience extraction
-- AI-generated cover letters tailored per job
+- AI-generated cover letters tailored per job  
 - AI-generated interview answers
 - Rate limiting: 3 AI requests per user per day
 - Multi-language support (EN, DE, RU, PL)
