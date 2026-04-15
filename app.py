@@ -249,7 +249,12 @@ def search_jobs_route():
     if not location and session.get("cached_jobs"):
         jobs = session["cached_jobs"]
     else:
-        jobs = search_jobs(" ".join(keywords), session.get("language", "English"))
+        location = request.form.get("location", "")
+keyword_query = keywords[0] if keywords else "QA Engineer"
+if location and location.lower().strip() in ["remote", "удалённо", "zdalnie"]:
+    keyword_query = keyword_query + " remote"
+    location = ""
+jobs = search_jobs(keyword_query, session.get("language", "English"), location)
         session["cached_jobs"] = jobs[:20]
         session["cached_location"] = location
     session["jobs_url"] = "/jobs-cached"
