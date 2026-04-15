@@ -1,4 +1,4 @@
-import PyPDF2
+import pdfplumber
 import docx
 import anthropic
 import json
